@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎡 美語動作大轉盤 🎡</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Noto+Sans+TC:wght@400;700;900&family=Quicksand:wght@600;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Quicksand', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 15%, transparent 15%),
+                              radial-gradient(#cbd5e1 15%, transparent 15%);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+        }
+        
+        /* Dynamic sized wheel container (roughly half screen on desktop) */
+        .giant-wheel-outer {
+            width: 320px;
+            height: 320px;
+        }
+        
+        .wheel-segment {
+            position: absolute;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        /* Responsive segment translation to accommodate massive wheel on large screens */
+        .seg-0 { transform: rotate(0deg) translateY(-105px); }
+        .seg-1 { transform: rotate(45deg) translateY(-105px); }
+        .seg-2 { transform: rotate(90deg) translateY(-105px); }
+        .seg-3 { transform: rotate(135deg) translateY(-105px); }
+        .seg-4 { transform: rotate(180deg) translateY(-105px); }
+        .seg-5 { transform: rotate(225deg) translateY(-105px); }
+        .seg-6 { transform: rotate(270deg) translateY(-105px); }
+        .seg-7 { transform: rotate(315deg) translateY(-105px); }
+
+        @media (min-width: 768px) {
+            .giant-wheel-outer {
+                width: 500px;
+                height: 500px;
+            }
+            .seg-0 { transform: rotate(0deg) translateY(-195px); }
+            .seg-1 { transform: rotate(45deg) translateY(-195px); }
+            .seg-2 { transform: rotate(90deg) translateY(-195px); }
+            .seg-3 { transform: rotate(135deg) translateY(-195px); }
+            .seg-4 { transform: rotate(180deg) translateY(-195px); }
+            .seg-5 { transform: rotate(225deg) translateY(-195px); }
+            .seg-6 { transform: rotate(270deg) translateY(-195px); }
+            .seg-7 { transform: rotate(315deg) translateY(-195px); }
+        }
+
+        /* Bubble float animation background */
+        .bubble-bg {
+            animation: floatBubble 5s ease-in-out infinite;
+        }
+        @keyframes floatBubble {
+            0%, 100% { transform: translateY(0px) scale(1); opacity: 0.8; }
+            50% { transform: translateY(-10px) scale(1.05); opacity: 1; }
+        }
+        
+        /* Cute scrollbar */
+        .cute-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .cute-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 99px;
+        }
+        .cute-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+        .cute-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Smooth fast rotational easing */
+        #spinner-wheel {
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col text-slate-700">
+
+<!-- Particle canvas for beautiful feedback -->
+<canvas id="game-confetti" class="pointer-events-none fixed inset-0 w-full h-full z-[9999]"></canvas>
+
+<!-- Top Premium Kids Banner -->
+<header class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-6 py-4 flex justify-between items-center shrink-0 shadow-md relative overflow-hidden">
+    <div class="absolute -top-10 left-1/3 w-20 h-20 bg-white/10 rounded-full blur-md pointer-events-none"></div>
+    
+    <div class="flex items-center space-x-3 relative z-10">
+        <div class="bg-white/95 p-2.5 rounded-2xl shadow-inner text-3xl">
+            <span>🎡</span>
+        </div>
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="bg-amber-400 text-amber-950 text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-wider shadow-sm">TPR ACTION</span>
+                <h1 class="text-xl md:text-2xl font-black tracking-wider drop-shadow-sm">美語肢體動作大轉盤</h1>
+            </div>
+            <p class="text-[10px] text-indigo-50 font-bold tracking-widest mt-0.5">English Action Spinner Party! Let's Spin & Stretch!</p>
+        </div>
+    </div>
+
+    <!-- Live Stars Earned -->
+    <div class="flex items-center space-x-3 relative z-10">
+        <div class="bg-amber-300 border-b-4 border-amber-500 text-amber-950 font-black px-5 py-2.5 rounded-2xl text-sm shadow-md flex items-center space-x-2 transition-all hover:scale-105">
+            <span class="text-lg">⭐</span>
+            <span>獲得星星: <span id="star-score">0</span></span>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto cute-scroll">
+    
+    <!-- Unified Centered Play Card -->
+    <div class="w-full max-w-[1300px] bg-white rounded-[32px] border-8 border-slate-200 shadow-xl p-6 md:p-10 flex flex-col lg:flex-row gap-8 lg:gap-16 items-center justify-center relative overflow-hidden">
+        
+        <!-- Background Deco -->
+        <div class="absolute -bottom-6 -left-6 text-7xl opacity-5 select-none pointer-events-none">🎈</div>
+        <div class="absolute -top-6 -right-6 text-7xl opacity-5 select-none pointer-events-none">✨</div>
+
+        <!-- Left Side: Giant Physics Spinner Component -->
+        <div class="flex-1 flex flex-col items-center justify-center relative min-h-[360px] md:min-h-[540px]">
+            <!-- Pointer Indicator -->
+            <div class="absolute top-0 z-30 text-5xl md:text-6xl transform -translate-y-2 md:-translate-y-4 rotate-180 drop-shadow-md animate-bounce">🔺</div>
+            
+            <!-- Circular Wheel Layout -->
+            <div class="giant-wheel-outer rounded-full border-[12px] border-amber-300 relative bg-white shadow-2xl flex items-center justify-center overflow-hidden transition-all">
+                <!-- Spinning Inner Core Container -->
+                <div id="spinner-wheel" class="absolute inset-0 w-full h-full rounded-full bg-gradient-to-tr from-slate-100 to-slate-50">
+                    <!-- 8 segment labels rotated around center -->
+                    <div class="absolute inset-0 flex items-center justify-center text-xs md:text-lg lg:text-xl font-black pointer-events-none">
+                        <div class="wheel-segment seg-0 text-emerald-800">👏 Clap</div>
+                        <div class="wheel-segment seg-1 text-sky-800">👣 Stomp</div>
+                        <div class="wheel-segment seg-2 text-purple-800">🐰 Jump</div>
+                        <div class="wheel-segment seg-3 text-rose-800">👃 Nose</div>
+                        <div class="wheel-segment seg-4 text-amber-800">🧑 Head</div>
+                        <div class="wheel-segment seg-5 text-teal-800">🦅 Arms</div>
+                        <div class="wheel-segment seg-6 text-indigo-800">💃 Body</div>
+                        <div class="wheel-segment seg-7 text-pink-800">👟 Toes</div>
+                    </div>
+                    
+                    <!-- Beautiful graphic dividers in wheel -->
+                    <div class="absolute w-full h-0.5 bg-slate-200/60 top-1/2 left-0"></div>
+                    <div class="absolute w-0.5 h-full bg-slate-200/60 left-1/2 top-0"></div>
+                    <div class="absolute w-full h-full flex items-center justify-center">
+                        <div class="w-full h-0.5 bg-slate-200/60 rotate-45"></div>
+                        <div class="w-full h-0.5 bg-slate-200/60 -rotate-45"></div>
+                    </div>
+                </div>
+                
+                <!-- Middle Core Button Trigger -->
+                <button onclick="spinTheWheel()" id="spin-trigger-btn" class="absolute w-24 h-24 md:w-32 md:h-32 bg-amber-400 hover:bg-amber-500 text-amber-950 rounded-full border-4 border-white shadow-xl flex flex-col items-center justify-center z-20 hover:scale-105 active:scale-95 transition-all">
+                    <span class="text-xs md:text-sm font-black tracking-widest leading-none">SPIN</span>
+                    <span class="text-2xl md:text-4xl mt-1">🎡</span>
+                </button>
+            </div>
+            
+            <p class="text-xs font-bold text-slate-400 mt-6 flex items-center gap-1">
+                <span>✨</span> 點按轉盤中心開始隨機挑選動作指令！
+            </p>
+        </div>
+
+        <!-- Right Side: Landing Spot Results Display -->
+        <div class="w-full lg:w-[480px] bg-slate-50 border-4 border-slate-200 rounded-[28px] p-6 flex flex-col justify-between min-h-[360px] md:min-h-[500px] shadow-inner">
+            <div class="text-center">
+                <span class="bg-indigo-100 text-indigo-900 text-xs font-black px-4 py-1.5 rounded-full tracking-wider shadow-sm">
+                    🎯 挑戰動作隨機挑選
+                </span>
+                
+                <!-- Landing Screen Output -->
+                <div id="spin-result-container" class="my-6 md:my-10">
+                    <div class="w-28 h-28 md:w-36 md:h-36 bg-white rounded-full flex items-center justify-center mx-auto shadow-md border-4 border-dashed border-indigo-200 bubble-bg mb-4 md:mb-6">
+                        <span id="spin-result-emoji" class="text-6xl md:text-7xl">🎁</span>
+                    </div>
+                    <!-- English text made significantly larger -->
+                    <h4 id="spin-result-text-en" class="text-4xl md:text-5xl lg:text-6xl font-black text-indigo-800 tracking-wide leading-tight drop-shadow-sm">Ready to Spin!</h4>
+                    <p id="spin-result-text-zh" class="text-base md:text-lg font-bold text-slate-500 mt-3 md:mt-4">轉盤準備好囉！請旋轉</p>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <button onclick="performSpinnerAction()" id="btn-spin-confirm" disabled class="w-full bg-amber-400 hover:bg-amber-500 text-amber-950 font-black py-4 rounded-2xl shadow-lg border-b-4 border-amber-600 transition-all text-sm md:text-base flex items-center justify-center space-x-1.5 opacity-50 cursor-not-allowed">
+                <span>🌟</span> <span id="spin-confirm-text">全體起立一起做！+10⭐</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- Custom Toast Message Area -->
+<div id="toast-layer" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-3 rounded-2xl font-black text-xs md:text-sm bg-indigo-600 text-white shadow-xl pointer-events-none z-[99999] opacity-0 translate-y-6 transition-all duration-300 flex items-center space-x-2 border-2 border-indigo-400">
+    <span class="text-lg">✨</span> <span id="toast-text">歡迎來到美語動作大挑戰！</span>
+</div>
+
+<script>
+// Global game state variables
+let audioCtx = null;
+let currentScore = 0;
+let isSpinning = false;
+let wheelTargetAngle = 0;
+
+// The official database of 8 physical movements
+const actionDatabase = [
+    { en: "Clap your hands!", zh: "拍拍你的雙手！", emoji: "👏", key: "clap" },
+    { en: "Stomp your feet!", zh: "大力的跺跺腳！", emoji: "👣", key: "stomp" },
+    { en: "Jump up high!", zh: "高高地向上跳！", emoji: "🐰", key: "jump" },
+    { en: "Touch your nose!", zh: "摸摸你的小鼻子！", emoji: "👃", key: "nose" },
+    { en: "Shake your head!", zh: "搖一搖你的腦袋！", emoji: "🧑", key: "head" },
+    { en: "Wave your arms!", zh: "揮動揮動雙手！", emoji: "🦅", key: "arms" },
+    { en: "Wiggle your body!", zh: "扭扭你可愛的身體！", emoji: "💃", key: "body" },
+    { en: "Touch your toes!", zh: "彎下腰摸摸腳趾頭！", emoji: "👟", key: "toes" }
+];
+
+// Confetti Particle System Setup (No external canvas-confetti import dependencies)
+const canvas = document.getElementById('game-confetti');
+const ctx = canvas.getContext('2d');
+let confettiParticles = [];
+let animId = null;
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class ConfettiParticle {
+    constructor(x, y, color, type) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 12 + 8;
+        this.color = color;
+        this.type = type; // 'star', 'bubble', 'party'
+        this.angle = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.15;
+        this.vx = (Math.random() - 0.5) * 16;
+        this.vy = -Math.random() * 12 - 6;
+        this.gravity = 0.22;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.012 + 0.008;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.vx *= 0.98;
+        this.angle += this.rotSpeed;
+        this.alpha -= this.decay;
+    }
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        if (this.type === 'bubble') {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(-this.size/6, -this.size/6, this.size/10, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fill();
+        } else if (this.type === 'star') {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.size, -Math.sin((18 + i * 72) * Math.PI / 180) * this.size);
+                ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (this.size/2.2), -Math.sin((54 + i * 72) * Math.PI / 180) * (this.size/2.2));
+            }
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Party celebration shape emoji
+            ctx.font = `${this.size * 1.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎉', 0, 0);
+        }
+        ctx.restore();
+    }
+}
+
+function launchConfetti(originX, originY) {
+    const colors = ['#38bdf8', '#0ea5e9', '#f43f5e', '#fb7185', '#34d399', '#fbbf24', '#c084fc', '#ff007f'];
+    const types = ['star', 'bubble', 'party', 'star', 'bubble'];
+    for (let i = 0; i < 45; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const type = types[Math.floor(Math.random() * types.length)];
+        confettiParticles.push(new ConfettiParticle(originX, originY, color, type));
+    }
+    if (!animId) {
+        animateConfetti();
+    }
+}
+
+function animateConfetti() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    confettiParticles = confettiParticles.filter(p => p.alpha > 0);
+    confettiParticles.forEach(p => {
+        p.update();
+        p.draw();
+    });
+    if (confettiParticles.length > 0) {
+        animId = requestAnimationFrame(animateConfetti);
+    } else {
+        animId = null;
+    }
+}
+
+// Web Audio Synth Chimes & Pops
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+function playBubblePop() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+        gainNode.gain.setValueAtTime(0.12, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+    } catch(e){}
+}
+
+function playSuccessChime() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // CEGA major pentatonic
+        notes.forEach((freq, index) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + index * 0.08);
+            gain.gain.setValueAtTime(0, now + index * 0.08);
+            gain.gain.linearRampToValueAtTime(0.15, now + index * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + index * 0.08);
+            osc.stop(now + index * 0.08 + 0.35);
+        });
+    } catch(e){}
+}
+
+function playTick() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(900, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+    } catch(e){}
+}
+
+// Speech Synthesis Helper
+function speakEnglish(phrase) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // stop current sound
+        const utter = new SpeechSynthesisUtterance(phrase);
+        utter.lang = 'en-US';
+        utter.rate = 0.75; // Slower, kid-friendly speed
+        utter.pitch = 1.1; // Cheerful pitch
+        window.speechSynthesis.speak(utter);
+    } else {
+        showToast("您的瀏覽器暫時無法支援美語發音音效喔 📢");
+    }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast-layer');
+    const toastText = document.getElementById('toast-text');
+    toastText.innerText = msg;
+    toast.classList.remove('opacity-0', 'translate-y-6');
+    toast.classList.add('opacity-100', 'translate-y-0');
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-6');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+    }, 2500);
+}
+
+window.onload = function() {
+    showToast("美語動作大轉盤準備完畢！🎉");
+};
+
+// --- GAME: ACTION SPINNER STAGE ---
+function spinTheWheel() {
+    if (isSpinning) return;
+    getAudioContext();
+    isSpinning = true;
+    
+    // Disable Spin Trigger
+    const spinBtn = document.getElementById('spin-trigger-btn');
+    spinBtn.disabled = true;
+    spinBtn.classList.add('opacity-50');
+    
+    // Reset confirmation state
+    const confirmBtn = document.getElementById('btn-spin-confirm');
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    document.getElementById('spin-confirm-text').innerText = "等轉盤停下來...";
+
+    // Determine target slice (8 pieces -> 45deg each)
+    const totalSlices = 8;
+    const randomSlice = Math.floor(Math.random() * totalSlices);
+    
+    // Add multiple rotations (5-8 circles) + alignment offset
+    const additionalCircles = 5 + Math.floor(Math.random() * 4); 
+    const sliceAngle = 360 / totalSlices;
+    
+    // Calculate final spin angle (rotated clockwise, pointer is on top center)
+    const targetAngleDegree = (additionalCircles * 360) - (randomSlice * sliceAngle);
+    
+    wheelTargetAngle = targetAngleDegree;
+    const wheel = document.getElementById('spinner-wheel');
+    wheel.style.transform = `rotate(${wheelTargetAngle}deg)`;
+
+    // Tick audio sound interval during spinning simulation
+    let currentRotationProgress = 0;
+    const tickInterval = setInterval(() => {
+        if (currentRotationProgress < targetAngleDegree) {
+            playTick();
+            currentRotationProgress += 60 + (targetAngleDegree - currentRotationProgress) * 0.05; // decay step
+        } else {
+            clearInterval(tickInterval);
+        }
+    }, 120);
+
+    // After transition duration (4 seconds css transition)
+    setTimeout(() => {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.classList.remove('opacity-50');
+        
+        // Retrieve result
+        const landedAction = actionDatabase[randomSlice];
+        
+        // Show result on board
+        document.getElementById('spin-result-emoji').innerText = landedAction.emoji;
+        document.getElementById('spin-result-text-en').innerText = landedAction.en;
+        document.getElementById('spin-result-text-zh').innerText = landedAction.zh;
+        
+        // Enable Confirmation Challenge
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        document.getElementById('spin-confirm-text').innerText = "全體起立一起做！+10⭐";
+        
+        // Voice out the Action automatically
+        speakEnglish(landedAction.en);
+        playBubblePop();
+        
+    }, 4000);
+}
+
+function performSpinnerAction() {
+    getAudioContext();
+    playSuccessChime();
+    
+    currentScore += 10;
+    document.getElementById('star-score').innerText = currentScore;
+    
+    launchConfetti(window.innerWidth / 2, window.innerHeight * 0.5);
+    showToast("大成功！獲得 10 顆星星 ⭐");
+    
+    // Reset button
+    const confirmBtn = document.getElementById('btn-spin-confirm');
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+}
+</script>
+</body>
+</html>
